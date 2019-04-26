@@ -464,7 +464,7 @@ private:
     static void StaticUpdateFireKey(CControlFunctionBind* pBind);
 
     void DrawFPS();
-
+    void DrawIndexedPrimitiveCallCountPerFrame();
     #ifdef MTA_DEBUG
     void DrawTasks(CClientPlayer* pPlayer);
     void DrawPlayerDetails(CClientPlayer* pPlayer);

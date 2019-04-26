@@ -2274,3 +2274,15 @@ HANDLE CCore::SetThreadHardwareBreakPoint(HANDLE hThread, HWBRK_TYPE Type, HWBRK
 {
     return CCrashDumpWriter::SetThreadHardwareBreakPoint(hThread, Type, Size, dwAddress);
 }
+
+extern DWORD g_dwCallsToDrawIndexedPrimitiveCount;
+
+DWORD CCore::GetDrawIndexedPrimitiveCallCount()
+{
+    return g_dwCallsToDrawIndexedPrimitiveCount;
+}
+
+void CCore::SetDrawIndexedPrimitiveCallCount(DWORD dwCount)
+{
+    g_dwCallsToDrawIndexedPrimitiveCount = dwCount;
+}

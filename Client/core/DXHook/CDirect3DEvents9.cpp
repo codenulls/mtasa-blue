@@ -393,9 +393,13 @@ HRESULT CDirect3DEvents9::DrawPrimitiveShader(IDirect3DDevice9* pDevice, D3DPRIM
 // May change render states for custom renderings
 //
 /////////////////////////////////////////////////////////////
+
+DWORD g_dwCallsToDrawIndexedPrimitiveCount = 0;
 HRESULT CDirect3DEvents9::OnDrawIndexedPrimitive(IDirect3DDevice9* pDevice, D3DPRIMITIVETYPE PrimitiveType, INT BaseVertexIndex, UINT MinVertexIndex,
                                                  UINT NumVertices, UINT startIndex, UINT primCount)
 {
+    g_dwCallsToDrawIndexedPrimitiveCount++;
+
     if (ms_DiagnosticDebug == EDiagnosticDebug::GRAPHICS_6734)
         return pDevice->DrawIndexedPrimitive(PrimitiveType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 
@@ -681,6 +685,7 @@ int  FilerException(uint ExceptionCode)
 // Catch access violations
 //
 /////////////////////////////////////////////////////////////
+
 HRESULT CDirect3DEvents9::DrawPrimitiveGuarded(IDirect3DDevice9* pDevice, D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
     if (ms_DiagnosticDebug == EDiagnosticDebug::D3D_6732)

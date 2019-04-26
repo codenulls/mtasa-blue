@@ -276,6 +276,10 @@ public:
     bool        IsFakeLagCommandEnabled() { return m_bFakeLagCommandEnabled; }
     SString     GetBlueCopyrightString();
     HANDLE      SetThreadHardwareBreakPoint(HANDLE hThread, HWBRK_TYPE Type, HWBRK_SIZE Size, DWORD dwAddress);
+
+    DWORD CCore::GetDrawIndexedPrimitiveCallCount();
+    void CCore::SetDrawIndexedPrimitiveCallCount(DWORD dwCount);
+
 private:
     // Core devices.
     CXML*               m_pXML;

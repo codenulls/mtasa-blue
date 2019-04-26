@@ -868,6 +868,9 @@ void CClientGame::DoPulsePostFrame()
         if (g_pMultiplayer->GetLimits()->GetStreamingMemory() != iStreamingMemoryBytes)
             g_pMultiplayer->GetLimits()->SetStreamingMemory(iStreamingMemoryBytes);
 
+
+        DrawIndexedPrimitiveCallCountPerFrame();
+
             // If we're in debug mode and are supposed to show task data, do it
         #ifdef MTA_DEBUG
         if (m_pShowPlayerTasks)
@@ -2927,6 +2930,16 @@ void CClientGame::DrawFPS()
     m_pDisplayManager->DrawText2D(strBuffer, CVector(0.76f, 0.23f, 0), 1.0f, 0xFFFFFFFF);
 }
 
+DWORD dwDrawIndexedPrimitiveCallCountPerFrame = 0;
+
+void CClientGame::DrawIndexedPrimitiveCallCountPerFrame()
+{
+    SString strOutput = "";
+    strOutput += SString("DrawIndexedPrimitiveCallCountPerFrame = %u\n", dwDrawIndexedPrimitiveCallCountPerFrame);
+
+    m_pDisplayManager->DrawText2D(strOutput, CVector(0.05f, 0.5f, 0), 1.0f);
+}
+
 #ifdef MTA_DEBUG
 
 void CClientGame::DrawTasks(CClientPlayer* pPlayer)
@@ -3927,6 +3940,9 @@ void CClientGame::PostWorldProcessHandler()
 
 void CClientGame::IdleHandler()
 {
+    dwDrawIndexedPrimitiveCallCountPerFrame = g_pCore->GetDrawIndexedPrimitiveCallCount();
+    g_pCore->SetDrawIndexedPrimitiveCallCount(0);
+
     // If we are minimized we do the pulsing here
     if (g_pCore->IsWindowMinimized())
     {
