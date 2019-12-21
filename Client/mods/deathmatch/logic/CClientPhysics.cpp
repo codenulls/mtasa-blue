@@ -10,7 +10,7 @@
 
 #include "StdInc.h"
 #include <list>
-#include "D:\mtablue\mtasa-blue\Client\game_sa\CColModelSA.h"
+#include "..\game_sa\CColModelSA.h"
 #include "lua/CLuaPhysicsSharedLogic.h"
 #include "lua/CLuaPhysicsRigidBodyManager.h"
 #include "lua/CLuaPhysicsStaticCollisionManager.h"
