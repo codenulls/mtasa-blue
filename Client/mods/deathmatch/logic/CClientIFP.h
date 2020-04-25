@@ -196,7 +196,7 @@ public:
         R_TOE_0 = 54
     };
 
-    CClientIFP(class CClientManager* pManager, ElementID ID);
+    CClientIFP(class CClientManager* pManager, ElementID ID, bool bDontAddDummiesForMissingBones);
     virtual eClientEntityType GetType() const { return CCLIENTIFP; }
 
     void MarkAsUnloading() { m_bUnloading = true; }
@@ -274,10 +274,11 @@ private:
     std::vector<SAnimation>*        m_pVecAnimations;
     bool                            m_bVersion1;
     bool                            m_bUnloading;
+    bool                            m_bDontAddDummiesForMissingBones = false;
     CAnimManager*                   m_pAnimManager;
 
     // 32 because there are 32 bones in a ped model
-    const unsigned short m_kcIFPSequences = 32;
+    const unsigned short m_kcIFPMaxSequences = 32;
     // We'll keep all key frames compressed by default. GTA:SA will decompress
     // them, when it's going to play the animation. We don't need to worry about it.
     const bool m_kbAllKeyFramesCompressed = true;

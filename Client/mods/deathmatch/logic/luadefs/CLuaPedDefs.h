@@ -67,6 +67,7 @@ public:
 
     LUA_DECLARE(SetPedRotation);
     LUA_DECLARE(SetPedCanBeKnockedOffBike);
+    LUA_DECLARE(AddAnimationToPed);
     LUA_DECLARE(SetPedAnimation);
     LUA_DECLARE(SetPedAnimationProgress);
     LUA_DECLARE(SetPedAnimationSpeed);

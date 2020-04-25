@@ -354,11 +354,13 @@ int CLuaEngineDefs::EngineLoadIFP(lua_State* luaVM)
 {
     SString input;
     SString blockName;
+    bool bDontAddDummiesForMissingBones = false;
 
     CScriptArgReader argStream(luaVM);
     // Grab the IFP filename or data
     argStream.ReadString(input);
     argStream.ReadString(blockName);
+    argStream.ReadBool(bDontAddDummiesForMissingBones, false);
 
     if (!argStream.HasErrors())
     {
@@ -386,7 +388,7 @@ int CLuaEngineDefs::EngineLoadIFP(lua_State* luaVM)
                 // Is this a legal filepath?
                 if (bIsRawData || CResourceManager::ParseResourcePathInput(input, pResource, &filePath))
                 {
-                    std::shared_ptr<CClientIFP> pIFP = CIFPEngine::LoadIFP(pResource, m_pManager, std::move(blockName), bIsRawData, bIsRawData ? std::move(input) : std::move(filePath));
+                    std::shared_ptr<CClientIFP> pIFP = CIFPEngine::LoadIFP(pResource, m_pManager, std::move(blockName), bIsRawData, bIsRawData ? std::move(input) : std::move(filePath), bDontAddDummiesForMissingBones);
 
                     if (pIFP)
                     {

@@ -10,7 +10,8 @@
 
 #include <StdInc.h>
 
-std::shared_ptr<CClientIFP> CIFPEngine::LoadIFP(CResource* resource, CClientManager* clientManager, const SString& blockName, bool isRawInput, SString input)
+std::shared_ptr<CClientIFP> CIFPEngine::LoadIFP(CResource* resource, CClientManager* clientManager, const SString& blockName, bool isRawInput, SString input,
+                                                bool bDontAddDummiesForMissingBones)
 {
     // Grab the resource root entity
     const unsigned int u32BlockNameHash = HashString(blockName.ToLower());
@@ -19,7 +20,7 @@ std::shared_ptr<CClientIFP> CIFPEngine::LoadIFP(CResource* resource, CClientMana
     if (g_pClientGame->GetIFPPointerFromMap(u32BlockNameHash) == nullptr)
     {
         // Create a IFP element
-        std::shared_ptr<CClientIFP> pIFP(new CClientIFP(clientManager, INVALID_ELEMENT_ID));
+        std::shared_ptr<CClientIFP> pIFP(new CClientIFP(clientManager, INVALID_ELEMENT_ID, bDontAddDummiesForMissingBones));
 
         // Try to load the IFP file
         if (pIFP->Load(blockName, isRawInput, std::move(input)))

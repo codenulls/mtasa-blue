@@ -66,6 +66,7 @@ void CLuaPedDefs::LoadFunctions()
         {"setPedWeaponSlot", SetPedWeaponSlot},
         {"setPedRotation", SetPedRotation},
         {"setPedCanBeKnockedOffBike", SetPedCanBeKnockedOffBike},
+        {"addAnimationToPed", AddAnimationToPed},
         {"setPedAnimation", SetPedAnimation},
         {"setPedAnimationProgress", SetPedAnimationProgress},
         {"setPedAnimationSpeed", SetPedAnimationSpeed},
@@ -2055,6 +2056,58 @@ int CLuaPedDefs::SetPedCanBeKnockedOffBike(lua_State* luaVM)
     lua_pushboolean(luaVM, false);
     return 1;
 }
+
+int CLuaPedDefs::AddAnimationToPed(lua_State* luaVM)
+{
+    // Verify the argument
+    CClientEntity* pEntity = NULL;
+    bool           bDummy;
+    SString        strBlockName = "";
+    SString        strAnimName = "";
+    int            iTime = -1;
+    int            iBlend = 250;
+    bool           bLoop = true;
+    bool           bUpdatePosition = true;
+    bool           bInterruptable = true;
+    bool           bFreezeLastFrame = true;
+    bool           bPartial = false;
+    bool           bIndestructible = false;
+
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadUserData(pEntity);
+    if (argStream.NextIsBool())
+        argStream.ReadBool(bDummy);            // Wiki used setPedAnimation(source,false) as an example
+    else if (argStream.NextIsNil())
+        argStream.m_iIndex++;            // Wiki docs said blockName could be nil
+    else
+        argStream.ReadString(strBlockName, "");
+    argStream.ReadString(strAnimName, "");
+    argStream.ReadNumber(iTime, -1);
+    argStream.ReadBool(bLoop, true);
+    argStream.ReadBool(bUpdatePosition, true);
+    argStream.ReadBool(bFreezeLastFrame, true);
+    argStream.ReadNumber(iBlend, 250);
+    argStream.ReadBool(bPartial, false);
+    argStream.ReadBool(bIndestructible, false);
+
+    if (!argStream.HasErrors())
+    {
+        if (CStaticFunctionDefinitions::AddAnimationToPed(*pEntity, strBlockName == "" ? NULL : strBlockName.c_str(),
+                                                        strAnimName == "" ? NULL : strAnimName.c_str(), iTime, iBlend, bLoop, bUpdatePosition,
+                                                          bFreezeLastFrame, bPartial, bIndestructible))
+        {
+            lua_pushboolean(luaVM, true);
+            return 1;
+        }
+    }
+    else
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+
+    // Failed
+    lua_pushboolean(luaVM, false);
+    return 1;
+}
+
 
 int CLuaPedDefs::SetPedAnimation(lua_State* luaVM)
 {

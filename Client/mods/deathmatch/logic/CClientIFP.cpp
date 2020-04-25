@@ -12,7 +12,7 @@
 #include "game/CAnimBlendSequence.h"
 #include "game/CAnimBlendHierarchy.h"
 
-CClientIFP::CClientIFP(class CClientManager* pManager, ElementID ID) : CClientEntity(ID)
+CClientIFP::CClientIFP(class CClientManager* pManager, ElementID ID, bool bLoadAnimsAsPartial) : CClientEntity(ID)
 {
     // Init
     SetSmartPointer(true);
@@ -23,6 +23,7 @@ CClientIFP::CClientIFP(class CClientManager* pManager, ElementID ID) : CClientEn
     m_bVersion1 = false;
     m_bUnloading = false;
     m_u32Hashkey = 0;
+    m_bDontAddDummiesForMissingBones = bLoadAnimsAsPartial;
 }
 
 void CClientIFP::Unlink()
@@ -148,7 +149,10 @@ WORD CClientIFP::ReadSequencesWithDummies(std::unique_ptr<CAnimBlendHierarchy>& 
     WORD            wUnknownSequences = ReadSequences(pAnimationHierarchy, MapOfSequences);
 
     MoveSequencesWithDummies(pAnimationHierarchy, MapOfSequences);
-    WORD cSequences = m_kcIFPSequences + wUnknownSequences;
+    WORD cSequences = m_kcIFPMaxSequences + wUnknownSequences;
+    if (m_bDontAddDummiesForMissingBones) {
+        cSequences = pAnimationHierarchy->GetNumSequences();
+    }
 
     // As we need support for all 32 bones, we must change the total sequences count
     pAnimationHierarchy->SetNumSequences(cSequences);
@@ -166,7 +170,7 @@ WORD CClientIFP::ReadSequences(std::unique_ptr<CAnimBlendHierarchy>& pAnimationH
 
 WORD CClientIFP::ReadSequencesVersion1(std::unique_ptr<CAnimBlendHierarchy>& pAnimationHierarchy, SequenceMapType& MapOfSequences)
 {
-    WORD wUnknownSequences = 0;
+    short wUnknownSequences = 0;
     for (size_t SequenceIndex = 0; SequenceIndex < pAnimationHierarchy->GetNumSequences(); SequenceIndex++)
     {
         SAnim        Anim;
@@ -180,7 +184,9 @@ WORD CClientIFP::ReadSequencesVersion1(std::unique_ptr<CAnimBlendHierarchy>& pAn
         bool                                bUnknownSequence = iBoneID == eBoneType::UNKNOWN;
         if (bUnknownSequence)
         {
-            size_t UnkownSequenceIndex = m_kcIFPSequences + wUnknownSequences;
+            size_t UnkownSequenceIndex = m_kcIFPMaxSequences + wUnknownSequences;
+            if (m_bDontAddDummiesForMissingBones)
+                UnkownSequenceIndex = pAnimationHierarchy->GetNumSequences() - wUnknownSequences - 1;
             auto   pAnimationSequenceInterface = pAnimationHierarchy->GetSequence(UnkownSequenceIndex);
             pAnimationSequence = m_pAnimManager->GetCustomAnimBlendSequence(pAnimationSequenceInterface);
             wUnknownSequences++;
@@ -202,7 +208,7 @@ WORD CClientIFP::ReadSequencesVersion1(std::unique_ptr<CAnimBlendHierarchy>& pAn
 
 WORD CClientIFP::ReadSequencesVersion2(std::unique_ptr<CAnimBlendHierarchy>& pAnimationHierarchy, SequenceMapType& MapOfSequences)
 {
-    WORD wUnknownSequences = 0;
+    short wUnknownSequences = 0;
     for (size_t SequenceIndex = 0; SequenceIndex < pAnimationHierarchy->GetNumSequences(); SequenceIndex++)
     {
         SSequenceHeaderV2 ObjectNode;
@@ -213,7 +219,9 @@ WORD CClientIFP::ReadSequencesVersion2(std::unique_ptr<CAnimBlendHierarchy>& pAn
         std::unique_ptr<CAnimBlendSequence> pAnimationSequence;
         if (bUnknownSequence)
         {
-            size_t UnkownSequenceIndex = m_kcIFPSequences + wUnknownSequences;
+            size_t UnkownSequenceIndex = m_kcIFPMaxSequences + wUnknownSequences;
+            if (m_bDontAddDummiesForMissingBones) 
+                UnkownSequenceIndex = pAnimationHierarchy->GetNumSequences() - wUnknownSequences - 1;
             auto   pAnimationSequenceInterface = pAnimationHierarchy->GetSequence(UnkownSequenceIndex);
             pAnimationSequence = m_pAnimManager->GetCustomAnimBlendSequence(pAnimationSequenceInterface);
             wUnknownSequences++;
@@ -475,23 +483,30 @@ void CClientIFP::PreProcessAnimationHierarchy(std::unique_ptr<CAnimBlendHierarch
 
 void CClientIFP::MoveSequencesWithDummies(std::unique_ptr<CAnimBlendHierarchy>& pAnimationHierarchy, SequenceMapType& mapOfSequences)
 {
-    for (size_t SequenceIndex = 0; SequenceIndex < m_kcIFPSequences; SequenceIndex++)
+    size_t sequenceIndex = 0;
+    for (size_t i = 0; i < m_kcIFPMaxSequences; i++)
     {
-        SString BoneName = m_karrstrBoneNames[SequenceIndex];
-        DWORD   BoneID = m_karruBoneIds[SequenceIndex];
-
-        auto pAnimationSequenceInterface = pAnimationHierarchy->GetSequence(SequenceIndex);
-        auto pAnimationSequence = m_pAnimManager->GetCustomAnimBlendSequence(pAnimationSequenceInterface);
+        SString BoneName = m_karrstrBoneNames[i];
+        DWORD   BoneID = m_karruBoneIds[i];
         auto it = mapOfSequences.find(BoneID);
         if (it != mapOfSequences.end())
         {
+            size_t theSequenceIndex = i;
+            if (m_bDontAddDummiesForMissingBones) {
+                theSequenceIndex = sequenceIndex;
+                sequenceIndex++;
+            }
+            auto pAnimationSequenceInterface = pAnimationHierarchy->GetSequence(theSequenceIndex);
+            auto pAnimationSequence = m_pAnimManager->GetCustomAnimBlendSequence(pAnimationSequenceInterface);
             auto pMapAnimSequenceInterface = it->second->GetInterface();
             pAnimationSequence->CopySequenceProperties(pMapAnimSequenceInterface);
             // Delete the interface because we are moving, not copying
             m_pAnimManager->DeleteCustomAnimSequenceInterface(pMapAnimSequenceInterface);
         }
-        else
+        else if (!m_bDontAddDummiesForMissingBones)
         {
+            auto pAnimationSequenceInterface = pAnimationHierarchy->GetSequence(i);
+            auto pAnimationSequence = m_pAnimManager->GetCustomAnimBlendSequence(pAnimationSequenceInterface);
             InsertAnimationDummySequence(pAnimationSequence, BoneName, BoneID);
         }
     }
@@ -499,8 +514,10 @@ void CClientIFP::MoveSequencesWithDummies(std::unique_ptr<CAnimBlendHierarchy>& 
 
 BYTE* CClientIFP::AllocateSequencesMemory(std::unique_ptr<CAnimBlendHierarchy>& pAnimationHierarchy)
 {
-    const WORD cMaxSequences = m_kcIFPSequences + pAnimationHierarchy->GetNumSequences();
-    return static_cast<BYTE*>(operator new(12 * cMaxSequences + 4));
+   WORD sequenceCount = m_kcIFPMaxSequences + pAnimationHierarchy->GetNumSequences();
+    if (m_bDontAddDummiesForMissingBones)
+        sequenceCount = pAnimationHierarchy->GetNumSequences();
+    return static_cast<BYTE*>(operator new(12 * sequenceCount + 4));
 }
 
 CClientIFP::eFrameType CClientIFP::GetFrameTypeFromFourCC(const char* szFourCC)

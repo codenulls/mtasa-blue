@@ -2118,6 +2118,73 @@ bool CStaticFunctionDefinitions::SetPedCanBeKnockedOffBike(CClientEntity& Entity
     return false;
 }
 
+bool CStaticFunctionDefinitions::AddAnimationToPed(CClientEntity& Entity, const SString& strBlockName, const char* szAnimName, int iTime, int iBlend,
+                                                   bool bLoop,
+                                                 bool bUpdatePosition, bool bFreezeLastFrame, bool bPartial, bool bIndestructible)
+{
+    auto CAnimManager_BlendAnimation = (CAnimBlendAssociationSAInterface * (__cdecl*)(RpClump*, CAnimBlendHierarchySAInterface*, unsigned int, float blend))0x4D4410;
+    //auto CAnimManager_AddAnimationAndSync = (CAnimBlendAssociationSAInterface * (__cdecl*)(RpClump*, CAnimBlendHierarchySAInterface*, int))0x4D3B30;
+
+    RUN_CHILDREN(AddAnimationToPed(**iter, strBlockName, szAnimName, iTime, iBlend, bLoop, bUpdatePosition, bFreezeLastFrame, bPartial, bIndestructible))
+
+    if (IS_PED(&Entity))
+    {
+        CClientPed& Ped = static_cast<CClientPed&>(Entity);
+        if (!Ped.GetClump()) {
+            printf("AddAnimationToPed Error: Ped is not streamed in\n");
+            return false;
+        }
+
+        unsigned int flags = 0;           
+        if (bPartial)
+            flags |= 0x10;            // Stops jaw fucking up, some speaking flag maybe
+        if (bIndestructible)
+            flags |= 0x8000;
+        if (bLoop)
+            flags |= 0x2;            // flag that triggers the loop (Maccer)
+        if (bUpdatePosition)
+        {
+            // 0x40 enables position updating on Y-coord, 0x80 on X. (Maccer)
+            flags |= 0x40;
+            flags |= 0x80;
+        }
+
+        if (!bFreezeLastFrame)
+            flags |= 0x08;            // flag determines whether to freeze player when anim ends. Really annoying (Maccer)
+
+        CAnimBlendAssociationSAInterface* pAnimBlendAssoc = nullptr;
+        if (strBlockName && szAnimName)
+        {
+            float fBlendDelta = 1 / std::max((float)iBlend, 1.0f) * 1000;
+            std::unique_ptr<CAnimBlock> pInternalBlock = g_pGame->GetAnimManager()->GetAnimationBlock(strBlockName);
+            if (pInternalBlock)
+            {
+                auto pInternalAnimHierarchy = g_pGame->GetAnimManager()->GetAnimation(szAnimName, pInternalBlock);
+                if (pInternalAnimHierarchy)
+                    pAnimBlendAssoc = CAnimManager_BlendAnimation(Ped.GetClump(), pInternalAnimHierarchy->GetInterface(), flags, fBlendDelta);
+            }
+            else
+            {
+                std::shared_ptr<CClientIFP> pIFP = g_pClientGame->GetIFPPointerFromMap(HashString(strBlockName.ToLower()));
+                if (pIFP)
+                {
+                    auto pCustomAnimBlendHierarchy = pIFP->GetAnimationHierarchy(szAnimName);
+                    if (pCustomAnimBlendHierarchy)
+                    {
+                        pAnimBlendAssoc = CAnimManager_BlendAnimation(Ped.GetClump(), pCustomAnimBlendHierarchy, flags, fBlendDelta);
+                    }
+                }
+            }
+        }
+        if (pAnimBlendAssoc) {
+            pAnimBlendAssoc->m_bPlaying = true;
+            printf("Animation Added\n");
+            return true;
+        }
+    }
+    return false;
+}
+
 bool CStaticFunctionDefinitions::SetPedAnimation(CClientEntity& Entity, const SString& strBlockName, const char* szAnimName, int iTime, int iBlend, bool bLoop,
                                                  bool bUpdatePosition, bool bInterruptable, bool bFreezeLastFrame)
 {
@@ -7836,8 +7903,8 @@ CClientSound* CStaticFunctionDefinitions::PlaySound(CResource* pResource, const 
     return pSound;
 }
 
-CClientSound* CStaticFunctionDefinitions::PlaySound3D(CResource* pResource, const SString& strSound, bool bIsURL, bool bIsRawData, const CVector& vecPosition, bool bLoop,
-                                                      bool bThrottle)
+CClientSound* CStaticFunctionDefinitions::PlaySound3D(CResource* pResource, const SString& strSound, bool bIsURL, bool bIsRawData, const CVector& vecPosition,
+                                                      bool bLoop, bool bThrottle)
 {
     CClientSound* pSound = m_pSoundManager->PlaySound3D(strSound, bIsURL, bIsRawData, vecPosition, bLoop, bThrottle);
     if (pSound)
